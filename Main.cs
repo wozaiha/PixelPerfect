@@ -28,11 +28,12 @@ namespace PixelPerfect
         private float _thickness = 10f;
 
         private bool _targetRing;
+
         //private Num.Vector4 col_ring = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
         private float _targetRadius = 10f;
         private int _targetSegments = 100;
         private float _targetThickness = 2f;
-        
+
         public void Initialize(DalamudPluginInterface pI)
         {
             _pluginInterface = pI;
@@ -100,6 +101,7 @@ namespace PixelPerfect
                     SaveConfig();
                     _config = false;
                 }
+
                 ImGui.SameLine();
                 ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000 | 0x005E5BFF);
                 ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xDD000000 | 0x005E5BFF);
@@ -109,19 +111,26 @@ namespace PixelPerfect
                 {
                     System.Diagnostics.Process.Start("https://ko-fi.com/haplo");
                 }
+
                 ImGui.PopStyleColor(3);
                 ImGui.End();
             }
 
             if (_pluginInterface.ClientState.LocalPlayer == null) return;
-            if(_combat)
+            if (_combat)
             {
-                if (!_pluginInterface.ClientState.Condition[Dalamud.Game.ClientState.ConditionFlag.InCombat]) { return; }
+                if (!_pluginInterface.ClientState.Condition[Dalamud.Game.ClientState.ConditionFlag.InCombat])
+                {
+                    return;
+                }
             }
 
             if (_instance)
             {
-                if (!_pluginInterface.ClientState.Condition[Dalamud.Game.ClientState.ConditionFlag.BoundByDuty]) { return; }
+                if (!_pluginInterface.ClientState.Condition[Dalamud.Game.ClientState.ConditionFlag.BoundByDuty])
+                {
+                    return;
+                }
             }
 
             var actor = _pluginInterface.ClientState.LocalPlayer;
@@ -143,7 +152,7 @@ namespace PixelPerfect
                     100);
             }
 
-            if(_circle)
+            if (_circle)
             {
                 ImGui.GetWindowDrawList().AddCircle(
                     new Num.Vector2(pos.X, pos.Y),
@@ -151,29 +160,38 @@ namespace PixelPerfect
                     ImGui.GetColorU32(_col2),
                     100);
             }
+
             ImGui.End();
 
-            if (_ring) 
+            if (_ring)
             {
                 ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Num.Vector2(0, 0));
                 ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(0, 0));
-                ImGui.Begin("Ring", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
+                ImGui.Begin("Ring",
+                    ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar |
+                    ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
                 ImGui.SetWindowSize(ImGui.GetIO().DisplaySize);
-                DrawRingWorld(_pluginInterface.ClientState.LocalPlayer, _radius, _segments, _thickness, ImGui.GetColorU32(_colRing));
+                DrawRingWorld(_pluginInterface.ClientState.LocalPlayer, _radius, _segments, _thickness,
+                    ImGui.GetColorU32(_colRing));
                 ImGui.End();
                 ImGui.PopStyleVar();
             }
 
-            if ((_targetRing) & (_pluginInterface.ClientState.Targets.CurrentTarget != null)) {
+            if ((_targetRing) & (_pluginInterface.ClientState.Targets.CurrentTarget != null))
+            {
                 ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Num.Vector2(0, 0));
                 ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(0, 0));
-                ImGui.Begin("Target_Ring", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
+                ImGui.Begin("Target_Ring",
+                    ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar |
+                    ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
                 ImGui.SetWindowSize(ImGui.GetIO().DisplaySize);
-                DrawRingWorld(_pluginInterface.ClientState.Targets.CurrentTarget, _targetRadius, _targetSegments, _targetThickness, ImGui.GetColorU32(_colRing));
+                DrawRingWorld(_pluginInterface.ClientState.Targets.CurrentTarget, _targetRadius, _targetSegments,
+                    _targetThickness, ImGui.GetColorU32(_colRing));
                 ImGui.End();
                 ImGui.PopStyleVar();
             }
         }
+
         private void ConfigWindow(object sender, EventArgs args)
         {
             _config = true;
@@ -181,36 +199,40 @@ namespace PixelPerfect
 
         private void Command(string command, string arguments)
         {
-            if (arguments.Trim() == "") _config = true;
-            else
+            arguments = arguments.Trim();
+            if (arguments == "") _config = true;
+            else if (arguments.Substring(0, 1).ToLower().Trim() == "t")
             {
-                if (arguments.IndexOf(' ') > 0)
+                if (float.TryParse(arguments.Substring(1).Trim(), out var target))
                 {
-                    if (arguments.Substring(0, arguments.IndexOf(' ')).ToLower().Trim() != "me") return;
+                    if (target > 0)
+                    {
+                        _targetRing = true;
+                        _targetRadius = target;
+                    }
                     else
                     {
-                        if (float.TryParse(arguments.Substring(arguments.IndexOf(' ')).Trim(), out var me))
-                        {
-                            _ring = true;
-                            _radius = me;
-                        }
-                        else
-                        {
-                            _ring = false;
-                            _radius = _configuration.Radius;
-                        }
+                        _targetRing = false;
+                        _targetRadius = _configuration.TargetRadius;
                     }
                 }
+            }
 
-                if (float.TryParse(arguments, out var target))
+            if (arguments.Length < 2) return;
+            if (arguments.Substring(0, 2).ToLower().Trim() == "me")
+            {
+                if (float.TryParse(arguments.Substring(2).Trim(), out var me))
                 {
-                    _targetRing = true;
-                    _targetRadius = target;
-                }
-                else
-                {
-                    _targetRing = false;
-                    _targetRadius = _configuration.TargetRadius;
+                    if (me > 0)
+                    {
+                        _ring = true;
+                        _radius = me;
+                    }
+                    else
+                    {
+                        _ring = false;
+                        _radius = _configuration.Radius;
+                    }
                 }
             }
         }
@@ -237,14 +259,19 @@ namespace PixelPerfect
             _pluginInterface.SavePluginConfig(_configuration);
         }
 
-        private void DrawRingWorld(Dalamud.Game.ClientState.Actors.Types.Actor actor, float radius, int numSegments, float thicc, uint colour)
+        private void DrawRingWorld(Dalamud.Game.ClientState.Actors.Types.Actor actor, float radius, int numSegments,
+            float thicc, uint colour)
         {
             var seg = numSegments / 2;
             for (var i = 0; i <= numSegments; i++)
             {
-                _pluginInterface.Framework.Gui.WorldToScreen(new SharpDX.Vector3(actor.Position.X + (radius * (float)Math.Sin((Math.PI / seg) * i)), actor.Position.Z, actor.Position.Y + (radius * (float)Math.Cos((Math.PI / seg) * i))), out SharpDX.Vector2 pos);
+                _pluginInterface.Framework.Gui.WorldToScreen(
+                    new SharpDX.Vector3(actor.Position.X + (radius * (float) Math.Sin((Math.PI / seg) * i)),
+                        actor.Position.Z, actor.Position.Y + (radius * (float) Math.Cos((Math.PI / seg) * i))),
+                    out SharpDX.Vector2 pos);
                 ImGui.GetWindowDrawList().PathLineTo(new Num.Vector2(pos.X, pos.Y));
             }
+
             ImGui.GetWindowDrawList().PathStroke(colour, ImDrawFlags.Closed, thicc);
         }
     }
