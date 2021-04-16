@@ -26,6 +26,12 @@ namespace PixelPerfect
         private float _radius = 10f;
         private int _segments = 100;
         private float _thickness = 10f;
+
+        private bool _targetRing = false;
+        //ptivate Num.Vector4 col_ring = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
+        private float _targetRadius = 10f;
+        private int _targetSegments = 100;
+        private float _targetThickness = 2f;
         
         public void Initialize(DalamudPluginInterface pI)
         {
@@ -42,6 +48,12 @@ namespace PixelPerfect
             _instance = _configuration.Instance;
             _col = _configuration.Col;
             _col2 = _configuration.Col2;
+
+            _targetRing = _configuration.TargetRing;
+            _targetThickness = _configuration.TargetThickness;
+            _targetSegments = _configuration.TargetSegments;
+            _targetRadius = _configuration.TargetRadius;
+
             _pluginInterface.UiBuilder.OnBuildUi += DrawWindow;
             _pluginInterface.UiBuilder.OnOpenConfigUi += ConfigWindow;
             _pluginInterface.CommandManager.AddHandler("/pp", new CommandInfo(Command)
@@ -70,10 +82,17 @@ namespace PixelPerfect
                 ImGui.ColorEdit4("Colour", ref _col, ImGuiColorEditFlags.NoInputs);
                 ImGui.ColorEdit4("Outer Colour", ref _col2, ImGuiColorEditFlags.NoInputs);
                 ImGui.Separator();
+
                 ImGui.Checkbox("Ring", ref _ring);
-                ImGui.DragFloat("Yalms", ref _radius);
-                ImGui.DragFloat("Thickness", ref _thickness);
-                ImGui.DragInt("Smoothness", ref _segments);
+                ImGui.DragFloat("Yalms", ref _radius, 1f, 0f, 30f);
+                ImGui.DragFloat("Thickness", ref _thickness, 0.5f, 0f, 50f);
+                ImGui.DragInt("Smoothness", ref _segments, 1f, 0, 200);
+
+                ImGui.Checkbox("Target Ring", ref _targetRing);
+                ImGui.DragFloat("Target Yalms", ref _targetRadius, 1f, 0f, 30f);
+                ImGui.DragFloat("Target Thickness", ref _targetThickness, 0.5f, 0f, 50f);
+                ImGui.DragInt("Target Smoothness", ref _targetSegments, 1f, 0, 200);
+
                 ImGui.ColorEdit4("Ring Colour", ref _colRing, ImGuiColorEditFlags.NoInputs);
 
                 if (ImGui.Button("Save and Close Config"))
@@ -126,14 +145,26 @@ namespace PixelPerfect
             }
             ImGui.End();
 
-            if (!_ring) return;
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Num.Vector2(0, 0));
-            ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(0, 0));
-            ImGui.Begin("Ring", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
-            ImGui.SetWindowSize(ImGui.GetIO().DisplaySize);
-            DrawRingWorld(_pluginInterface.ClientState.LocalPlayer, _radius, _segments, _thickness, ImGui.GetColorU32(_colRing));
-            ImGui.End();
-            ImGui.PopStyleVar();
+            if (_ring) 
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Num.Vector2(0, 0));
+                ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(0, 0));
+                ImGui.Begin("Ring", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
+                ImGui.SetWindowSize(ImGui.GetIO().DisplaySize);
+                DrawRingWorld(_pluginInterface.ClientState.LocalPlayer, _radius, _segments, _thickness, ImGui.GetColorU32(_colRing));
+                ImGui.End();
+                ImGui.PopStyleVar();
+            }
+
+            if ((_targetRing) & (_pluginInterface.ClientState.Targets.CurrentTarget != null)) {
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Num.Vector2(0, 0));
+                ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(0, 0));
+                ImGui.Begin("Target_Ring", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground);
+                ImGui.SetWindowSize(ImGui.GetIO().DisplaySize);
+                DrawRingWorld(_pluginInterface.ClientState.Targets.CurrentTarget, _targetRadius, _targetSegments, _targetThickness, ImGui.GetColorU32(_colRing));
+                ImGui.End();
+                ImGui.PopStyleVar();
+            }
         }
         private void ConfigWindow(object sender, EventArgs args)
         {
@@ -142,7 +173,38 @@ namespace PixelPerfect
 
         private void Command(string command, string arguments)
         {
-            _config = true;
+            if (arguments.Trim() == "") _config = true;
+            else
+            {
+                if (arguments.IndexOf(' ') > 0)
+                {
+                    if (arguments.Substring(0, arguments.IndexOf(' ')).ToLower().Trim() != "me") return;
+                    else
+                    {
+                        if (float.TryParse(arguments.Substring(arguments.IndexOf(' ')).Trim(), out var me))
+                        {
+                            _ring = true;
+                            _radius = me;
+                        }
+                        else
+                        {
+                            _ring = false;
+                            _radius = _configuration.Radius;
+                        }
+                    }
+                }
+
+                if (float.TryParse(arguments, out var target))
+                {
+                    _targetRing = true;
+                    _targetRadius = target;
+                }
+                else
+                {
+                    _targetRing = false;
+                    _targetRadius = _configuration.TargetRadius;
+                }
+            }
         }
 
         private void SaveConfig()
@@ -159,6 +221,11 @@ namespace PixelPerfect
             _configuration.Ring = _ring;
             _configuration.Radius = _radius;
             _pluginInterface.SavePluginConfig(_configuration);
+
+            _configuration.TargetThickness = _targetThickness;
+            _configuration.TargetSegments = _targetSegments;
+            _configuration.TargetRing = _targetRing;
+            _configuration.TargetRadius = _targetRadius;
         }
 
         private void DrawRingWorld(Dalamud.Game.ClientState.Actors.Types.Actor actor, float radius, int numSegments, float thicc, uint colour)
@@ -187,8 +254,9 @@ namespace PixelPerfect
         public float Thickness { get; set; } = 10f;
         public bool Ring { get; set; }
         public float Radius { get; set; } = 2f;
-
-
+        public int TargetSegments { get; set; } = 100;
+        public float TargetThickness { get; set; } = 10f;
+        public bool TargetRing { get; set; } = false;
+        public float TargetRadius { get; set; } = 2f;
     }
-
 }
