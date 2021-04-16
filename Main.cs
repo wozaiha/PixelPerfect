@@ -1,7 +1,7 @@
 ﻿using System;
 using Dalamud.Plugin;
 using ImGuiNET;
-using ImGuiScene;
+//using ImGuiScene;
 using Dalamud.Configuration;
 using Num = System.Numerics;
 using Dalamud.Game.Command;
@@ -27,8 +27,8 @@ namespace PixelPerfect
         private int _segments = 100;
         private float _thickness = 10f;
 
-        private bool _targetRing = false;
-        //ptivate Num.Vector4 col_ring = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
+        private bool _targetRing;
+        //private Num.Vector4 col_ring = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
         private float _targetRadius = 10f;
         private int _targetSegments = 100;
         private float _targetThickness = 2f;
@@ -220,12 +220,13 @@ namespace PixelPerfect
             _configuration.Segments = _segments;
             _configuration.Ring = _ring;
             _configuration.Radius = _radius;
-            _pluginInterface.SavePluginConfig(_configuration);
 
             _configuration.TargetThickness = _targetThickness;
             _configuration.TargetSegments = _targetSegments;
             _configuration.TargetRing = _targetRing;
             _configuration.TargetRadius = _targetRadius;
+
+            _pluginInterface.SavePluginConfig(_configuration);
         }
 
         private void DrawRingWorld(Dalamud.Game.ClientState.Actors.Types.Actor actor, float radius, int numSegments, float thicc, uint colour)
@@ -256,7 +257,7 @@ namespace PixelPerfect
         public float Radius { get; set; } = 2f;
         public int TargetSegments { get; set; } = 100;
         public float TargetThickness { get; set; } = 10f;
-        public bool TargetRing { get; set; } = false;
+        public bool TargetRing { get; set; }
         public float TargetRadius { get; set; } = 2f;
     }
 }
