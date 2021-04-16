@@ -113,7 +113,7 @@ namespace PixelPerfect
                 ImGui.End();
             }
 
-            if (!_enabled || _pluginInterface.ClientState.LocalPlayer == null) return;
+            if (_pluginInterface.ClientState.LocalPlayer == null) return;
             if(_combat)
             {
                 if (!_pluginInterface.ClientState.Condition[Dalamud.Game.ClientState.ConditionFlag.InCombat]) { return; }
@@ -128,13 +128,21 @@ namespace PixelPerfect
             if (!_pluginInterface.Framework.Gui.WorldToScreen(
                 new SharpDX.Vector3(actor.Position.X, actor.Position.Z, actor.Position.Y),
                 out var pos)) return;
-            ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(pos.X - 10 - ImGuiHelpers.MainViewport.Pos.X, pos.Y - 10- ImGuiHelpers.MainViewport.Pos.Y));
-            ImGui.Begin("Pixel Perfect", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoBackground);
-            ImGui.GetWindowDrawList().AddCircleFilled(
-                new Num.Vector2(pos.X, pos.Y),
-                2f,
-                ImGui.GetColorU32(_col),
-                100);
+
+            if (_enabled)
+            {
+                ImGuiHelpers.SetNextWindowPosRelativeMainViewport(new Num.Vector2(
+                    pos.X - 10 - ImGuiHelpers.MainViewport.Pos.X, pos.Y - 10 - ImGuiHelpers.MainViewport.Pos.Y));
+                ImGui.Begin("Pixel Perfect",
+                    ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize |
+                    ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoBackground);
+                ImGui.GetWindowDrawList().AddCircleFilled(
+                    new Num.Vector2(pos.X, pos.Y),
+                    2f,
+                    ImGui.GetColorU32(_col),
+                    100);
+            }
+
             if(_circle)
             {
                 ImGui.GetWindowDrawList().AddCircle(
